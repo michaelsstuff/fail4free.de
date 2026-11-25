@@ -1,0 +1,43 @@
+# Lokale Entwicklungs- und Build-Umgebung (nur lokal — Produktion auf Hetzner Webhosting S nutzt kein Docker)
+
+services:
+  app:
+    build:
+      context: ./docker/php
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: fail4free
+      MARIADB_USER: fail4free
+      MARIADB_PASSWORD: localdev
+      MARIADB_ROOT_PASSWORD: localdevroot
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  node:
+    image: node:22-alpine
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "127.0.0.1:5173:5173"
+    profiles:
+      - tools
+
+volumes:
+  mariadb_data:
